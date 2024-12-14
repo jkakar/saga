@@ -11,8 +11,8 @@ import {
   type WorkflowPlugin,
   WorkflowState,
 } from "./executor";
-import { MemoryStore } from "./memory";
-import { PostgresStore } from "./postgres";
+import { MemoryStore } from "./memory/store";
+import { PostgresStore } from "./postgres/store";
 import { FakeActivityPlugin, FakeWorkflowPlugin } from "./testing";
 
 describe("PluginRegistry.register", () => {

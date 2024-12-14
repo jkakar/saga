@@ -1,4 +1,8 @@
 build:
 	npm install
-test: build
+
+lint:
+	tsc
+
+test: lint
 	npx vitest src

@@ -5,7 +5,7 @@ import {
   type Workflow,
   type WorkflowInput,
   WorkflowState,
-} from "./executor";
+} from "../executor";
 import {
   deleteWorkflowLock,
   insertActivity,

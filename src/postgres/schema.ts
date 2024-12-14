@@ -8,7 +8,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { ActivityState, WorkflowState } from "./executor";
+import { ActivityState, WorkflowState } from "../executor";
 
 export const workflowLocks = pgTable("workflow_locks", {
   id: uuid("id").primaryKey(),

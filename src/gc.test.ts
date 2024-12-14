@@ -7,8 +7,8 @@ import {
   WorkflowState,
 } from "./executor";
 import { WorkflowGC } from "./gc";
-import { MemoryStore } from "./memory";
-import { PostgresStore } from "./postgres";
+import { MemoryStore } from "./memory/store";
+import { PostgresStore } from "./postgres/store";
 
 describe("Store", async () => {
   const cases: Array<{
