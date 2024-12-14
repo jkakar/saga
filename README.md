@@ -1,5 +1,3 @@
-Saga is a workflow engine that implements the saga pattern.
-
 # @jkakar/saga
 
 A TypeScript library for managing workflows based on the saga pattern.
