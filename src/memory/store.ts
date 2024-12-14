@@ -5,7 +5,7 @@ import {
   type Workflow,
   type WorkflowInput,
   WorkflowState,
-} from "../executor";
+} from "../types";
 
 export class MemoryStore implements Store {
   protected cache = new Map<

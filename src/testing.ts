@@ -1,10 +1,10 @@
+import type { ActivityCallback } from "./executor";
 import type {
   Activity,
-  ActivityCallback,
   ActivityPlugin,
   Workflow,
   WorkflowPlugin,
-} from "./executor";
+} from "./types";
 
 export class FakeWorkflowPlugin implements WorkflowPlugin {
   type: string;

@@ -1,17 +1,17 @@
 import { v4 as uuidv4 } from "uuid";
 import { describe, expect, test } from "vitest";
-import {
-  type ActivityPlugin,
-  PluginRegistry,
-  type Store,
-  WorkflowExecutor,
-  type WorkflowPlugin,
-  WorkflowState,
-} from "./executor";
+import { WorkflowExecutor } from "./executor";
 import { MemoryStore } from "./memory/store";
 import { PostgresStore } from "./postgres/store";
 import { WorkflowQueue } from "./queue";
+import { PluginRegistry } from "./registry";
 import { FakeActivityPlugin, FakeWorkflowPlugin } from "./testing";
+import {
+  type ActivityPlugin,
+  type Store,
+  type WorkflowPlugin,
+  WorkflowState,
+} from "./types";
 
 describe("Store", async () => {
   const cases: Array<{

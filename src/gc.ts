@@ -1,5 +1,5 @@
-import { type Store, type Workflow, WorkflowState } from "./executor";
 import { sleep } from "./timing";
+import { type Store, type Workflow, WorkflowState } from "./types";
 
 export class WorkflowGC {
   private running = false;

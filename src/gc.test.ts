@@ -1,14 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { describe, expect, test } from "vitest";
-import {
-  PluginRegistry,
-  type Store,
-  WorkflowExecutor,
-  WorkflowState,
-} from "./executor";
+import { WorkflowExecutor } from "./executor";
 import { WorkflowGC } from "./gc";
 import { MemoryStore } from "./memory/store";
 import { PostgresStore } from "./postgres/store";
+import { PluginRegistry } from "./registry";
+import { type Store, WorkflowState } from "./types";
 
 describe("Store", async () => {
   const cases: Array<{

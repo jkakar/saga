@@ -1,19 +1,19 @@
 import { v4 as uuidv4 } from "uuid";
 import { describe, expect, test } from "vitest";
+import { WorkflowExecutor } from "./executor";
+import { MemoryStore } from "./memory/store";
+import { PostgresStore } from "./postgres/store";
+import { PluginRegistry } from "./registry";
+import { FakeActivityPlugin, FakeWorkflowPlugin } from "./testing";
 import {
   type Activity,
   type ActivityPlugin,
   ActivityState,
-  PluginRegistry,
   type Store,
   type Workflow,
-  WorkflowExecutor,
   type WorkflowPlugin,
   WorkflowState,
-} from "./executor";
-import { MemoryStore } from "./memory/store";
-import { PostgresStore } from "./postgres/store";
-import { FakeActivityPlugin, FakeWorkflowPlugin } from "./testing";
+} from "./types";
 
 describe("PluginRegistry.register", () => {
   test("is compatible with WorkflowPlugin values", () => {

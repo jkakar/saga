@@ -1,103 +1,15 @@
 import { v5 as uuidv5 } from "uuid";
-
-export interface WorkflowInput {
-  id: string;
-  type: string;
-  refType: string;
-  refId: string;
-  executeAt?: Date;
-}
-
-export enum WorkflowState {
-  Queued = "queued",
-  Pending = "pending",
-  Running = "running",
-  RunningRetry = "running_retry",
-  RunningRollback = "running_rollback",
-  Failed = "failed",
-  FailedRollback = "failed_rollback",
-  Succeeded = "succeeded",
-}
-
-export interface Workflow {
-  id: string;
-  type: string;
-  state: string; // TODO Ideally this would be a value of WorkflowState type
-  refType: string;
-  refId: string;
-  activityTypes: string[];
-  attempts: number;
-  executeAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export enum ActivityState {
-  Pending = "pending",
-  Running = "running",
-  FailedPermanent = "failed_permanent",
-  FailedTemporary = "failed_temporary",
-  Succeeded = "succeeded",
-}
-
-export interface Activity {
-  id: string;
-  type: string;
-  state: string; // TODO Ideally this would be a value of ActivityState type
-  workflowId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Store {
-  getWorkflowById(id: string): Promise<Workflow | undefined>;
-  getWorkflowByRefId(id: string): Promise<Workflow | undefined>;
-  getExecutableWorkflows(cutoff: Date, limit: number): Promise<Workflow[]>;
-  getLostWorkflows(limit: number): Promise<Workflow[]>;
-  createWorkflow(input: WorkflowInput): Promise<Workflow>;
-  setWorkflowState(workflow: Workflow, state: WorkflowState): Promise<void>;
-  updateWorkflow(workflow: Workflow): Promise<void>;
-  tryLockWorkflow(workflow: Workflow): Promise<boolean>;
-  lockWorkflow(workflow: Workflow): Promise<void>;
-  unlockWorkflow(workflow: Workflow): Promise<void>;
-  getActivityByType(
-    workflow: Workflow,
-    activityType: string,
-  ): Promise<Activity | undefined>;
-  createActivity(
-    workflow: Workflow,
-    id: string,
-    activityType: string,
-  ): Promise<Activity>;
-  updateActivity(activity: Activity): Promise<void>;
-}
-
-export interface ExecutorPlugin {
-  type: string;
-}
-
-export class PluginRegistry<T extends ExecutorPlugin> {
-  private plugins = new Map<string, T>();
-
-  register(plugin: T): void {
-    this.plugins.set(plugin.type, plugin);
-  }
-
-  lookup(type: string): T | undefined {
-    return this.plugins.get(type);
-  }
-}
-
-export interface WorkflowPlugin {
-  type: string;
-  plan(workflow: Workflow): Promise<string[]>;
-}
-
-export interface ActivityPlugin {
-  type: string;
-  execute(workflow: Workflow, activity: Activity): Promise<void>;
-  rollback(workflow: Workflow, activity: Activity): Promise<void>;
-}
+import type { PluginRegistry } from "./registry";
+import {
+  type Activity,
+  type ActivityPlugin,
+  ActivityState,
+  type Store,
+  type Workflow,
+  type WorkflowInput,
+  type WorkflowPlugin,
+  WorkflowState,
+} from "./types";
 
 export type ActivityCallback = (
   workflow: Workflow,

@@ -1,5 +1,6 @@
-import type { Store, Workflow, WorkflowExecutor } from "./executor";
+import type { WorkflowExecutor } from "./executor";
 import { sleep } from "./timing";
+import type { Store, Workflow } from "./types";
 
 export class WorkflowQueue {
   private executions = new Set<string>();
