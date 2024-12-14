@@ -11,160 +11,6 @@ import {
   WorkflowState,
 } from "./types";
 
-export type ActivityCallback = (
-  workflow: Workflow,
-  activity: Activity,
-) => Promise<void>;
-
-function generateActivityId(workflowId: string, activityType: string): string {
-  // The hard-coded namespace UUID here must never be changed.
-  //
-  // Activity IDs are a v5 UUID based on the workflow ID, the activity type, and
-  // this namespace. This behavior ensures that generated activity IDs are
-  // stable, which in turn ensures that activity creation is idempotent.
-  return uuidv5(
-    `${workflowId}:${activityType}`,
-    "5df6a4fe-1fe4-47b8-bf32-3bf599650a9f",
-  );
-}
-
-class ActivityExecutor {
-  constructor(
-    private store: Store,
-    private activities: PluginRegistry<ActivityPlugin>,
-  ) {
-    this.store = store;
-    this.activities = activities;
-  }
-
-  async create(workflow: Workflow, activityType: string): Promise<Activity> {
-    const activity = await this.store.getActivityByType(workflow, activityType);
-    if (!activity) {
-      const id = generateActivityId(workflow.id, activityType);
-      return await this.store.createActivity(workflow, id, activityType);
-    }
-    return activity;
-  }
-
-  async execute(workflow: Workflow, activity: Activity): Promise<void> {
-    await this.invoke("execute", workflow, activity);
-  }
-
-  async rollback(workflow: Workflow, activity: Activity): Promise<void> {
-    await this.invoke("rollback", workflow, activity);
-  }
-
-  private async invoke(
-    operation: "execute" | "rollback",
-    workflow: Workflow,
-    activity: Activity,
-  ): Promise<void> {
-    const plugin = this.activities.lookup(
-      activity.type.replace("rollback:", "").split(":", 1)[0],
-    );
-
-    if (!plugin) {
-      throw `unknown activity plugin: ${activity.type}`;
-    }
-
-    if (!this.isActivityTerminal(activity)) {
-      activity.state = ActivityState.Pending;
-      await this.store.updateActivity(activity);
-    }
-
-    const callback =
-      operation === "execute"
-        ? plugin.execute.bind(plugin)
-        : plugin.rollback.bind(plugin);
-    await this.converge(workflow, activity, callback);
-  }
-
-  private async converge(
-    workflow: Workflow,
-    activity: Activity,
-    callback: ActivityCallback,
-  ): Promise<void> {
-    switch (activity.state) {
-      case ActivityState.Pending:
-        await this.handlePending(workflow, activity);
-        await this.converge(workflow, activity, callback);
-        return;
-      case ActivityState.Running:
-        await this.handleRunning(workflow, activity, callback);
-        await this.converge(workflow, activity, callback);
-        return;
-    }
-  }
-
-  private async handlePending(_: Workflow, activity: Activity): Promise<void> {
-    activity.state = ActivityState.Running;
-    await this.store.updateActivity(activity);
-  }
-
-  private async handleRunning(
-    workflow: Workflow,
-    activity: Activity,
-    callback: ActivityCallback,
-  ): Promise<void> {
-    try {
-      console.log("starting activity plugin", {
-        workflowId: workflow.id,
-        workflowType: workflow.type,
-        workflowState: workflow.state,
-        refId: workflow.refId,
-        refType: workflow.refType,
-        workflowAttempts: workflow.attempts,
-        activityTypes: workflow.activityTypes,
-        activityId: activity.id,
-        activityType: activity.type,
-        activityState: activity.state,
-      });
-      await callback(workflow, activity);
-    } catch (err) {
-      activity.state = ActivityState.FailedTemporary;
-      if (err === ActivityState.FailedPermanent) {
-        activity.state = ActivityState.FailedPermanent;
-      }
-      console.error("activity plugin error", {
-        err,
-        workflowId: workflow.id,
-        workflowType: workflow.type,
-        workflowState: workflow.state,
-        refId: workflow.refId,
-        refType: workflow.refType,
-        workflowAttempts: workflow.attempts,
-        activityTypes: workflow.activityTypes,
-        activityId: activity.id,
-        activityType: activity.type,
-        activityState: activity.state,
-      });
-      await this.store.updateActivity(activity);
-      return;
-    }
-    console.log("finished activity plugin", {
-      workflowId: workflow.id,
-      workflowType: workflow.type,
-      workflowState: workflow.state,
-      refId: workflow.refId,
-      refType: workflow.refType,
-      workflowAttempts: workflow.attempts,
-      activityTypes: workflow.activityTypes,
-      activityId: activity.id,
-      activityType: activity.type,
-      activityState: activity.state,
-    });
-    activity.state = ActivityState.Succeeded;
-    await this.store.updateActivity(activity);
-  }
-
-  private isActivityTerminal(activity: Activity): boolean {
-    return (
-      activity.state === ActivityState.FailedPermanent ||
-      activity.state === ActivityState.Succeeded
-    );
-  }
-}
-
 export class WorkflowExecutor {
   private executor: ActivityExecutor;
 
@@ -337,5 +183,159 @@ export class WorkflowExecutor {
       }
     }
     await this.store.setWorkflowState(workflow, WorkflowState.Failed);
+  }
+}
+
+export type ActivityCallback = (
+  workflow: Workflow,
+  activity: Activity,
+) => Promise<void>;
+
+function generateActivityId(workflowId: string, activityType: string): string {
+  // The hard-coded namespace UUID here must never be changed.
+  //
+  // Activity IDs are a v5 UUID based on the workflow ID, the activity type, and
+  // this namespace. This behavior ensures that generated activity IDs are
+  // stable, which in turn ensures that activity creation is idempotent.
+  return uuidv5(
+    `${workflowId}:${activityType}`,
+    "5df6a4fe-1fe4-47b8-bf32-3bf599650a9f",
+  );
+}
+
+class ActivityExecutor {
+  constructor(
+    private store: Store,
+    private activities: PluginRegistry<ActivityPlugin>,
+  ) {
+    this.store = store;
+    this.activities = activities;
+  }
+
+  async create(workflow: Workflow, activityType: string): Promise<Activity> {
+    const activity = await this.store.getActivityByType(workflow, activityType);
+    if (!activity) {
+      const id = generateActivityId(workflow.id, activityType);
+      return await this.store.createActivity(workflow, id, activityType);
+    }
+    return activity;
+  }
+
+  async execute(workflow: Workflow, activity: Activity): Promise<void> {
+    await this.invoke("execute", workflow, activity);
+  }
+
+  async rollback(workflow: Workflow, activity: Activity): Promise<void> {
+    await this.invoke("rollback", workflow, activity);
+  }
+
+  private async invoke(
+    operation: "execute" | "rollback",
+    workflow: Workflow,
+    activity: Activity,
+  ): Promise<void> {
+    const plugin = this.activities.lookup(
+      activity.type.replace("rollback:", "").split(":", 1)[0],
+    );
+
+    if (!plugin) {
+      throw `unknown activity plugin: ${activity.type}`;
+    }
+
+    if (!this.isActivityTerminal(activity)) {
+      activity.state = ActivityState.Pending;
+      await this.store.updateActivity(activity);
+    }
+
+    const callback =
+      operation === "execute"
+        ? plugin.execute.bind(plugin)
+        : plugin.rollback.bind(plugin);
+    await this.converge(workflow, activity, callback);
+  }
+
+  private async converge(
+    workflow: Workflow,
+    activity: Activity,
+    callback: ActivityCallback,
+  ): Promise<void> {
+    switch (activity.state) {
+      case ActivityState.Pending:
+        await this.handlePending(workflow, activity);
+        await this.converge(workflow, activity, callback);
+        return;
+      case ActivityState.Running:
+        await this.handleRunning(workflow, activity, callback);
+        await this.converge(workflow, activity, callback);
+        return;
+    }
+  }
+
+  private async handlePending(_: Workflow, activity: Activity): Promise<void> {
+    activity.state = ActivityState.Running;
+    await this.store.updateActivity(activity);
+  }
+
+  private async handleRunning(
+    workflow: Workflow,
+    activity: Activity,
+    callback: ActivityCallback,
+  ): Promise<void> {
+    try {
+      console.log("starting activity plugin", {
+        workflowId: workflow.id,
+        workflowType: workflow.type,
+        workflowState: workflow.state,
+        refId: workflow.refId,
+        refType: workflow.refType,
+        workflowAttempts: workflow.attempts,
+        activityTypes: workflow.activityTypes,
+        activityId: activity.id,
+        activityType: activity.type,
+        activityState: activity.state,
+      });
+      await callback(workflow, activity);
+    } catch (err) {
+      activity.state = ActivityState.FailedTemporary;
+      if (err === ActivityState.FailedPermanent) {
+        activity.state = ActivityState.FailedPermanent;
+      }
+      console.error("activity plugin error", {
+        err,
+        workflowId: workflow.id,
+        workflowType: workflow.type,
+        workflowState: workflow.state,
+        refId: workflow.refId,
+        refType: workflow.refType,
+        workflowAttempts: workflow.attempts,
+        activityTypes: workflow.activityTypes,
+        activityId: activity.id,
+        activityType: activity.type,
+        activityState: activity.state,
+      });
+      await this.store.updateActivity(activity);
+      return;
+    }
+    console.log("finished activity plugin", {
+      workflowId: workflow.id,
+      workflowType: workflow.type,
+      workflowState: workflow.state,
+      refId: workflow.refId,
+      refType: workflow.refType,
+      workflowAttempts: workflow.attempts,
+      activityTypes: workflow.activityTypes,
+      activityId: activity.id,
+      activityType: activity.type,
+      activityState: activity.state,
+    });
+    activity.state = ActivityState.Succeeded;
+    await this.store.updateActivity(activity);
+  }
+
+  private isActivityTerminal(activity: Activity): boolean {
+    return (
+      activity.state === ActivityState.FailedPermanent ||
+      activity.state === ActivityState.Succeeded
+    );
   }
 }
