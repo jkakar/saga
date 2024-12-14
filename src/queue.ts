@@ -1,6 +1,5 @@
-import { sleep } from "@blaide/timing.server";
-import config from "~/config.server";
-import type { Notifier, Store, Workflow, WorkflowExecutor } from "./executor";
+import type { Store, Workflow, WorkflowExecutor } from "./executor";
+import { sleep } from "./timing";
 
 export class WorkflowQueue {
   private executions = new Set<string>();
@@ -9,11 +8,9 @@ export class WorkflowQueue {
   constructor(
     private store: Store,
     private executor: WorkflowExecutor,
-    private notifier?: Notifier,
   ) {
     this.store = store;
     this.executor = executor;
-    this.notifier = notifier;
   }
 
   async run(limit: number, queryBackoffMilliseconds: number): Promise<void> {
@@ -26,19 +23,16 @@ export class WorkflowQueue {
           limit - this.executions.size,
         );
         if (workflows.length > 0) {
-          config.logger.info(
-            {
-              limit,
-              queryBackoffMilliseconds,
-              currentExecutionCount: this.executions.size,
-              newExecutionCount: workflows.length,
-              ids: workflows.map((w) => w.id).sort(),
-            },
-            "executing queued workflows",
-          );
+          console.log("executing queued workflows", {
+            limit,
+            queryBackoffMilliseconds,
+            currentExecutionCount: this.executions.size,
+            newExecutionCount: workflows.length,
+            ids: workflows.map((w) => w.id).sort(),
+          });
         }
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        this.executeMany(workflows, this.notifier);
+        this.executeMany(workflows);
       }
       await sleep(queryBackoffMilliseconds);
     }
@@ -55,22 +49,19 @@ export class WorkflowQueue {
     }
   }
 
-  async executeMany(workflows: Workflow[], notifier?: Notifier): Promise<void> {
+  async executeMany(workflows: Workflow[]): Promise<void> {
     for (const workflow of workflows) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.execute(workflow, notifier);
+      this.execute(workflow);
     }
   }
 
-  private async execute(
-    workflow: Workflow,
-    notifier?: Notifier,
-  ): Promise<void> {
+  private async execute(workflow: Workflow): Promise<void> {
     this.executions.add(workflow.id);
     try {
-      await this.executor.execute(workflow, notifier);
+      await this.executor.execute(workflow);
     } catch (err) {
-      config.logger.error({ err }, "workflow execution error");
+      console.error("workflow execution error", err);
     } finally {
       this.executions.delete(workflow.id);
     }

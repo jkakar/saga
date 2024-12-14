@@ -1,5 +1,5 @@
 import { and, between, eq, inArray, lt, lte } from "drizzle-orm";
-import { coreDb } from "~/db.server";
+import { db } from "./database";
 import { activities, workflowLocks, workflows } from "./schema";
 import type { Activity, Workflow, WorkflowLock } from "./schema";
 
@@ -7,7 +7,7 @@ export async function insertWorkflowLock(
   lock: WorkflowLock,
 ): Promise<WorkflowLock> {
   try {
-    const result = await coreDb.insert(workflowLocks).values(lock).returning();
+    const result = await db.insert(workflowLocks).values(lock).returning();
     if (!result) {
       throw new Error(
         `got undefined result inserting workflow lock ${lock.id}`,
@@ -25,17 +25,17 @@ export async function insertWorkflowLock(
 export async function selectWorkflowLock(
   id: string,
 ): Promise<WorkflowLock | undefined> {
-  return await coreDb.query.workflowLocks.findFirst({
+  return await db.query.workflowLocks.findFirst({
     where: eq(workflowLocks.id, id),
   });
 }
 
 export async function deleteWorkflowLock(id: string) {
-  return await coreDb.delete(workflowLocks).where(eq(workflowLocks.id, id));
+  return await db.delete(workflowLocks).where(eq(workflowLocks.id, id));
 }
 
 export async function insertWorkflow(workflow: Workflow): Promise<Workflow> {
-  const result = await coreDb.insert(workflows).values(workflow).returning();
+  const result = await db.insert(workflows).values(workflow).returning();
   if (!result) {
     throw new Error(`got undefined result inserting workflow ${workflow}`);
   }
@@ -45,7 +45,7 @@ export async function insertWorkflow(workflow: Workflow): Promise<Workflow> {
 export async function selectWorkflowById(
   id: string,
 ): Promise<Workflow | undefined> {
-  return await coreDb.query.workflows.findFirst({
+  return await db.query.workflows.findFirst({
     where: eq(workflows.id, id),
   });
 }
@@ -53,7 +53,7 @@ export async function selectWorkflowById(
 export async function selectWorkflowByRefId(
   id: string,
 ): Promise<Workflow | undefined> {
-  return await coreDb.query.workflows.findFirst({
+  return await db.query.workflows.findFirst({
     where: eq(workflows.refId, id),
   });
 }
@@ -63,7 +63,7 @@ export async function updateWorkflow(
   updates: Partial<Workflow>,
 ): Promise<Workflow | undefined> {
   updates.updatedAt = new Date();
-  const [workflow] = await coreDb
+  const [workflow] = await db
     .update(workflows)
     .set(updates)
     .where(eq(workflows.id, id))
@@ -72,7 +72,7 @@ export async function updateWorkflow(
 }
 
 export async function selectExecutableWorkflows(cutoff: Date, limit: number) {
-  return await coreDb.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const executables = await tx
       .select()
       .from(workflows)
@@ -102,7 +102,7 @@ export async function selectLostWorkflows(
   const start = new Date(now.getTime() - lookback);
   const end = new Date(now.getTime() - cutoff);
 
-  return await coreDb.query.workflows.findMany({
+  return await db.query.workflows.findMany({
     where: and(
       inArray(workflows.state, [
         "pending",
@@ -118,7 +118,7 @@ export async function selectLostWorkflows(
 }
 
 export async function insertActivity(activity: Activity): Promise<Activity> {
-  const result = await coreDb.insert(activities).values(activity).returning();
+  const result = await db.insert(activities).values(activity).returning();
   if (!result) {
     throw new Error(`got undefined result inserting activity ${activity}`);
   }
@@ -129,7 +129,7 @@ export async function updateActivity(
   id: string,
   updates: Partial<Activity>,
 ): Promise<Activity | undefined> {
-  const [activity] = await coreDb
+  const [activity] = await db
     .update(activities)
     .set(updates)
     .where(eq(activities.id, id))
@@ -141,7 +141,7 @@ export async function selectActivityByWorkflowIdAndType(
   id: string,
   type: string,
 ): Promise<Activity | undefined> {
-  return await coreDb.query.activities.findFirst({
+  return await db.query.activities.findFirst({
     where: and(eq(activities.workflowId, id), eq(activities.type, type)),
   });
 }

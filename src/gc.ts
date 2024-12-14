@@ -1,5 +1,5 @@
-import { sleep } from "@blaide/timing.server";
 import { type Store, type Workflow, WorkflowState } from "./executor";
+import { sleep } from "./timing";
 
 export class WorkflowGC {
   private running = false;

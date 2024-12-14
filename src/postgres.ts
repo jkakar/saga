@@ -1,4 +1,3 @@
-import config from "~/config.server";
 import {
   type Activity,
   ActivityState,
@@ -39,8 +38,12 @@ export class PostgresStore implements Store {
   }
 
   async getLostWorkflows(limit: number): Promise<Workflow[]> {
-    const lookback = config.SAGA_WORKFLOW_GC_LOOKBACK_MS;
-    const cutoff = config.SAGA_WORKFLOW_GC_CUTOFF_MS;
+    const lookback = Number.parseInt(
+      process.env.SAGA_WORKFLOW_GC_LOOKBACK_MS ?? "5000",
+    );
+    const cutoff = Number.parseInt(
+      process.env.SAGA_WORKFLOW_GC_CUTOFF_MS ?? "7200000",
+    ); // 2 hours
     return selectLostWorkflows(lookback, cutoff, limit);
   }
 

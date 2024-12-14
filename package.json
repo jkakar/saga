@@ -24,9 +24,13 @@
   "dependencies": {
     "drizzle-kit": "^0.28.1",
     "drizzle-orm": "^0.36.4",
+    "drizzle-zod": "^0.5.1",
+    "pg": "^8.13.1",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/pg": "^8.11.10",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
